@@ -33,11 +33,22 @@ class MainViewModel(private val mainRepository: MainRepository) : ViewModel() {
                 withContext(Dispatchers.Main) {
                     usersData.value = Resource.success(users.toMutableList())
                 }
+                mainRepository.deleteLocalUsers()
+                mainRepository.saveUsers(users)
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    usersData.value = Resource.error(null, getMessage(e))
+                withContext(Dispatchers.IO) {
+                    usersData.postValue(Resource.success(mainRepository.getLocalUsers().toMutableList()))
+//                    usersData.value = Resource.error(null, getMessage(e))
                 }
             }
         }
+    }
+
+    fun refreshUsers() {
+        getUsers()
+    }
+
+    suspend fun setLocalUsers()  {
+        usersData.value = Resource.success(mainRepository.getLocalUsers().toMutableList())
     }
 }

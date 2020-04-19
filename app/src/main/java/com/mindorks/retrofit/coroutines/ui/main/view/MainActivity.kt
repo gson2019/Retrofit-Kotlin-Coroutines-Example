@@ -3,23 +3,22 @@ package com.mindorks.retrofit.coroutines.ui.main.view
 import android.os.Bundle
 import android.util.Log
 import android.view.View
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.mindorks.retrofit.coroutines.R.*
+import com.mindorks.retrofit.coroutines.R.layout
 import com.mindorks.retrofit.coroutines.data.api.ApiHelper
 import com.mindorks.retrofit.coroutines.data.api.RetrofitBuilder
+import com.mindorks.retrofit.coroutines.data.database.UserDatabase
 import com.mindorks.retrofit.coroutines.data.model.User
 import com.mindorks.retrofit.coroutines.ui.base.ViewModelFactory
 import com.mindorks.retrofit.coroutines.ui.main.adapter.MainAdapter
 import com.mindorks.retrofit.coroutines.ui.main.viewmodel.MainViewModel
 import com.mindorks.retrofit.coroutines.utils.Resource
-import kotlinx.android.synthetic.main.activity_main.progressBar
-import kotlinx.android.synthetic.main.activity_main.recyclerView
+import kotlinx.android.synthetic.main.activity_main.*
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -38,7 +37,7 @@ class MainActivity : AppCompatActivity() {
     private fun setupViewModel() {
         viewModel = ViewModelProvider(
             this,
-            ViewModelFactory(ApiHelper(RetrofitBuilder.apiService))
+            ViewModelFactory(ApiHelper(RetrofitBuilder.apiService), UserDatabase.getDatabase(applicationContext))
         ).get(MainViewModel::class.java)
     }
 
@@ -52,11 +51,15 @@ class MainActivity : AppCompatActivity() {
             )
         )
         recyclerView.adapter = adapter
+        swipeLayout.setOnRefreshListener {
+            viewModel.refreshUsers()
+        }
     }
 
     private fun setupObservers() {
         viewModel.usersData.observe(this, Observer {
             it?.let { resource ->
+                swipeLayout.isRefreshing = false
                when (resource.status) {
                     Resource.Status.SUCCESS -> {
                         recyclerView.visibility = View.VISIBLE
@@ -66,7 +69,7 @@ class MainActivity : AppCompatActivity() {
                     Resource.Status.ERROR -> {
                         recyclerView.visibility = View.VISIBLE
                         progressBar.visibility = View.GONE
-                        Toast.makeText(this, it.message, Toast.LENGTH_LONG).show()
+//                        viewModel.setLocalUsers()
                     }
                     Resource.Status.LOADING -> {
                         progressBar.visibility = View.VISIBLE
